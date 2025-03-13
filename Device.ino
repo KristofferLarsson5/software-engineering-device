@@ -62,8 +62,7 @@ void loop() {
         }
     }
 }
-NYTT
-[16:09]
+
 // Function to register the device with the server
 void registerDevice() {
     StaticJsonDocument<BUFFER_SIZE> doc;
