@@ -4,7 +4,7 @@
 const int BUFFER_SIZE = 128;  // JSON buffer size
 
 bool isRegistered = false;
-int moduleID = -1;
+int deviceID = -1;
 
 void setup() {
     pinMode(LIGHT_PIN, OUTPUT);
@@ -37,26 +37,26 @@ void loop() {
             String messageType = doc["message_type"];
 
             if (messageType == "lamp_control") {
-                int receivedModuleID = doc["module_id"];
+                int receivedDeviceID = doc["device_id"];
                 String status = doc["status"];
 
-                if (receivedModuleID == moduleID || moduleID == -1) {  // Check if correct device
+                if (receivedDeviceID == deviceID || deviceID == -1) {  // Check if correct device
                     if (status == "on") {
                         digitalWrite(LIGHT_PIN, HIGH);
-                        sendAck(receivedModuleID, "on");
-                    } 
+                        sendAck(receivedDeviceID, "on");
+                    }
                     else if (status == "off") {
                         digitalWrite(LIGHT_PIN, LOW);
-                        sendAck(receivedModuleID, "off");
+                        sendAck(receivedDeviceID, "off");
                     }
                 }
             }
             else if (messageType == "registered") {
-                // Store module ID from the server
-                if (doc.containsKey("module_id")) {
-                    moduleID = doc["module_id"];
+                // Store device ID from the server
+                if (doc.containsKey("device_id")) {
+                    deviceID = doc["device_id"];
                     isRegistered = true;
-                    Serial.println("Module registered successfully!");
+                    Serial.println("Device registered successfully!");
                 }
             }
         }
@@ -75,14 +75,13 @@ void registerDevice() {
 }
 
 // Function to send acknowledgment back to the server
-void sendAck(int moduleID, const char* status) {
+void sendAck(int deviceID, const char* status) {
     StaticJsonDocument<BUFFER_SIZE> doc;
     doc["message_type"] = "ack";
-    doc["module_id"] = moduleID;
+    doc["device_id"] = deviceID;
     doc["status"] = status;
 
     char jsonBuffer[BUFFER_SIZE];
     serializeJson(doc, jsonBuffer);
     Serial.println(jsonBuffer);
 }
-
