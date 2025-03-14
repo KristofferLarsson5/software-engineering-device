@@ -14,7 +14,7 @@ This repository contains the **device-side implementation** for the **Smart Home
 
 ## How to Use  
 1. **Upload the Arduino Code** to your microcontroller using **Arduino IDE**.  
-2. **Run the Server** (repository link if applicable).  
+2. **Run the Server**.  
 3. **Send Commands** from the server to control the lamp.  
 4. **Monitor Serial Output** to see registration, updates, and acknowledgments.  
 
