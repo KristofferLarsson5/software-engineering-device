@@ -36,7 +36,7 @@ void loop() {
         if (!error) {
             String messageType = doc["message_type"];
 
-            if (messageType == "device_update") {  // ✅ FIXED: Updated message type
+            if (messageType == "device_update") { 
                 int receivedDeviceID = doc["device_id"];
                 String status = doc["status"];
 
@@ -52,7 +52,6 @@ void loop() {
                 }
             }
             else if (messageType == "registered") {
-                // ✅ FIXED: Send ACK in JSON format instead of plain text
                 if (doc.containsKey("device_id")) {
                     deviceID = doc["device_id"];
                     isRegistered = true;
