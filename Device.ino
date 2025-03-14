@@ -36,7 +36,7 @@ void loop() {
         if (!error) {
             String messageType = doc["message_type"];
 
-            if (messageType == "lamp_control") {
+            if (messageType == "device_update") {  // ✅ FIXED: Updated message type
                 int receivedDeviceID = doc["device_id"];
                 String status = doc["status"];
 
@@ -52,11 +52,11 @@ void loop() {
                 }
             }
             else if (messageType == "registered") {
-                // Store device ID from the server
+                // ✅ FIXED: Send ACK in JSON format instead of plain text
                 if (doc.containsKey("device_id")) {
                     deviceID = doc["device_id"];
                     isRegistered = true;
-                    Serial.println("Device registered successfully!");
+                    sendAck(deviceID, "registered");  // Sending registration acknowledgment
                 }
             }
         }
@@ -83,5 +83,6 @@ void sendAck(int deviceID, const char* status) {
 
     char jsonBuffer[BUFFER_SIZE];
     serializeJson(doc, jsonBuffer);
-    Serial.println(jsonBuffer);
+    Serial.println(jsonBuffer);  // Sends acknowledgment in JSON format
 }
+
