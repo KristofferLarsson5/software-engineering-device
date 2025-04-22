@@ -1,87 +1,125 @@
 #include <ArduinoJson.h>
 
-#define LIGHT_PIN 13                 // Pin controlling the light
-const int BUFFER_SIZE = 128;        // Buffer size for JSON handling
+// Pin definitions
+#define LIGHT_PIN 13
+#define FAN_INA_PIN 7
+#define FAN_INB_PIN 6
 
-bool isRegistered = false;
-int deviceID = -1;
+const int BUFFER_SIZE = 128;
+
+// Registration tracking
+int registrationStep = 0;
+bool lightRegistered = false;
+bool fanRegistered = false;
+
+int lightID = -1;
+int fanID = -1;
 
 void setup() {
   pinMode(LIGHT_PIN, OUTPUT);
-  digitalWrite(LIGHT_PIN, LOW);     // Ensure light is off on start
+  pinMode(FAN_INA_PIN, OUTPUT);
+  pinMode(FAN_INB_PIN, OUTPUT);
+
+  digitalWrite(LIGHT_PIN, LOW);
+  stopFan();
+
   Serial.begin(9600);
-  delay(1000);                      // Wait for Serial to be ready
-  registerDevice();                 // Send initial registration message
+  delay(1000);
+
+  // Register devices
+  registerDevice("light", LIGHT_PIN);  // D1 - Lamp
+  delay(100);
+  registerDevice("fan", FAN_INA_PIN);  // D2 - Fan
 }
 
 void loop() {
-  if (Serial.available()) {
-    char jsonBuffer[BUFFER_SIZE];
-    int index = 0;
+  static char jsonBuffer[BUFFER_SIZE];
+  static int index = 0;
 
-    while (Serial.available() > 0 && index < BUFFER_SIZE - 1) {
-      char c = Serial.read();
-      jsonBuffer[index++] = c;
-      delay(2);
-    }
-    jsonBuffer[index] = '\0'; // Null-terminate
+  while (Serial.available() > 0) {
+    char c = Serial.read();
 
-    StaticJsonDocument<BUFFER_SIZE> doc;
-    DeserializationError error = deserializeJson(doc, jsonBuffer);
+    if (c == '\n') {
+      jsonBuffer[index] = '\0';
 
-    if (!error) {
-      const char* messageType = doc["message_type"];
+      StaticJsonDocument<BUFFER_SIZE> doc;
+      DeserializationError error = deserializeJson(doc, jsonBuffer);
 
-      // Handle "registered" message from server
-      if (strcmp(messageType, "registered") == 0 && doc.containsKey("device_id")) {
-        deviceID = doc["device_id"];
-        isRegistered = true;
-        sendAck("registered"); 
-      }
+      if (!error) {
+        const char* messageType = doc["message_type"];
 
-      // Handle "device_update" command (turn light on/off)
-      else if (strcmp(messageType, "device_update") == 0 && doc.containsKey("device_id")) {
-        int incomingId = doc["device_id"];
-        const char* status = doc["status"];
+        // Handle registration confirmation
+        if (strcmp(messageType, "registered") == 0 && doc.containsKey("device_id")) {
+          int assignedID = doc["device_id"];
 
-        if (incomingId == deviceID && isRegistered) {
-          if (strcmp(status, "on") == 0) {
-            digitalWrite(LIGHT_PIN, HIGH);
-            sendAck("on");
-          } else if (strcmp(status, "off") == 0) {
-            digitalWrite(LIGHT_PIN, LOW);
-            sendAck("off");
+          if (registrationStep == 0) {
+            lightID = assignedID;
+            lightRegistered = true;
+            sendAck(lightID, "registered");
+          } else if (registrationStep == 1) {
+            fanID = assignedID;
+            fanRegistered = true;
+            sendAck(fanID, "registered");
+          }
+
+          registrationStep++;
+        }
+
+        // Handle device update
+        else if (strcmp(messageType, "device_update") == 0 && doc.containsKey("device_id") && doc.containsKey("status")) {
+          int incomingId = doc["device_id"];
+          const char* status = doc["status"];
+
+          if (incomingId == lightID && lightRegistered) {
+            digitalWrite(LIGHT_PIN, strcmp(status, "on") == 0 ? HIGH : LOW);
+            sendAck(lightID, status);
+          } else if (incomingId == fanID && fanRegistered) {
+            if (strcmp(status, "on") == 0) startFan();
+            else stopFan();
+            sendAck(fanID, status);
           }
         }
       }
+
+      index = 0;
+      memset(jsonBuffer, 0, BUFFER_SIZE);
+    } else if (index < BUFFER_SIZE - 1) {
+      jsonBuffer[index++] = c;
     }
   }
 }
 
-// Function to register this device with the server
-void registerDevice() {
+// Send device registration
+void registerDevice(const char* type, int pin) {
   StaticJsonDocument<BUFFER_SIZE> doc;
   doc["message_type"] = "register";
-  doc["device_type"] = "light";
-  doc["pin"] = LIGHT_PIN;
+  doc["device_type"] = type;
+  doc["pin"] = pin;
 
   char jsonBuffer[BUFFER_SIZE];
   serializeJson(doc, jsonBuffer);
-  Serial.println(jsonBuffer);       // Send JSON to server
+  Serial.println(jsonBuffer);
 }
 
-// Function to send ACK message to server
-void sendAck(const char* status) {
+// Send ACK back to server
+void sendAck(int id, const char* status) {
   StaticJsonDocument<BUFFER_SIZE> doc;
   doc["message_type"] = "ack";
-
-  if (deviceID != -1) {
-    doc["device_id"] = deviceID;
-  }
-
+  doc["device_id"] = id;
   doc["status"] = status;
 
   char jsonBuffer[BUFFER_SIZE];
   serializeJson(doc, jsonBuffer);
   Serial.println(jsonBuffer);
+}
+
+// Control fan
+void startFan() {
+  digitalWrite(FAN_INA_PIN, LOW);
+  digitalWrite(FAN_INB_PIN, HIGH);
+}
+
+void stopFan() {
+  digitalWrite(FAN_INA_PIN, LOW);
+  digitalWrite(FAN_INB_PIN, LOW);
 }
