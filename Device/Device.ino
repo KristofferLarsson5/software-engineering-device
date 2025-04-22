@@ -36,7 +36,7 @@ void loop() {
       if (strcmp(messageType, "registered") == 0 && doc.containsKey("device_id")) {
         deviceID = doc["device_id"];
         isRegistered = true;
-        sendAck("registered"); // ✅ Now includes device_id
+        sendAck("registered"); 
       }
 
       // Handle "device_update" command (turn light on/off)
@@ -62,7 +62,7 @@ void loop() {
 void registerDevice() {
   StaticJsonDocument<BUFFER_SIZE> doc;
   doc["message_type"] = "register";
-  doc["device_type"] = "light";     // Optional, based on your project
+  doc["device_type"] = "light";
   doc["pin"] = LIGHT_PIN;
 
   char jsonBuffer[BUFFER_SIZE];
