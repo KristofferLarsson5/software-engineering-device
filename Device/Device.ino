@@ -28,14 +28,16 @@ struct Device {
 
 #define MAX_DEVICES 10
 Device devices[MAX_DEVICES] = {
-  {"light_1", 13, -1, false},
-  {"light_2", 5, -1, false},
-  {"light_sensor", LIGHT_SENSOR_PIN, -1, false},
+  {"light", 13, -1, false},
+  {"light", 5, -1, false},
   {"fan", FAN_INA_PIN, -1, false},
   {"screen", 0, -1, false},
-  {"buzzer", 3, -1, false}
+  {"buzzer", 3, -1, false},
+  {"temperature_sensor", TEMP_SENSOR_PIN, -1, false},
+  {"humidity_sensor", HUMIDITY_SENSOR_PIN, -1, false},
+  {"light_sensor", LIGHT_SENSOR_PIN, -1, false}
 };
-int deviceCount = 5;
+int deviceCount = 8;
 int currentDeviceIndex = 0;
 bool registrationInProgress = false;
 
