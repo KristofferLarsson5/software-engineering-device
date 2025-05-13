@@ -30,7 +30,7 @@ struct Device {
 Device devices[MAX_DEVICES] = {
   {"light_1", 13, -1, false},
   {"light_2", 5, -1, false},
-  {"light_sensor", LIGHT_SENSOR_PIN, -1, false}
+  {"light_sensor", LIGHT_SENSOR_PIN, -1, false},
   {"fan", FAN_INA_PIN, -1, false},
   {"screen", 0, -1, false},
   {"buzzer", 3, -1, false}
