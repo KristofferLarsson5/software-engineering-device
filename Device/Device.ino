@@ -10,7 +10,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define FAN_INB_PIN 6
 
 // Sensor pins
-#define STEAM_SENSOR_PIN A0
+#define STEAM_SENSOR_PIN A2
 #define HUMIDITY_SENSOR_PIN A3
 #define LIGHT_SENSOR_PIN A1
 
