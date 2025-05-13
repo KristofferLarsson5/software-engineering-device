@@ -217,7 +217,7 @@ void stopFan() {
 
 // Read temperature sensor
 float readTemperature() {
-  int analogValue = analogRead(TEMP_SENSOR_PIN);
+  int analogValue = analogRead(STEAM_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
   float temperatureC = (voltage - 0.5) * 100.0;
   return temperatureC;
