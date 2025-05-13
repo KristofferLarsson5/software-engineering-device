@@ -155,7 +155,7 @@ void loop() {
     lastTempSend = currentMillis;
 
     float tempC = readTemperature();
-    sendSensorJson(1001, "steam", round(tempC), "celsius", "temp1");
+    sendSensorJson(1001, "steam", round(tempC), "%", "steam1");
 
     float humidity = readHumidity();
     sendSensorJson(1002, "humidity", round(humidity), "%", "humid1");
@@ -217,7 +217,7 @@ void stopFan() {
 
 // Read temperature sensor
 float readTemperature() {
-  int analogValue = analogRead(TEMP_SENSOR_PIN);
+  int analogValue = analogRead(STEAM_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
   float temperatureC = (voltage - 0.5) * 100.0;
   return temperatureC;
