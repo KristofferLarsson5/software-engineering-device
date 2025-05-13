@@ -12,7 +12,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // Sensor pins
 #define TEMP_SENSOR_PIN A0
 #define HUMIDITY_SENSOR_PIN A3
-#define LIGHT_SENSOR_PIN A2
+#define LIGHT_SENSOR_PIN A1
 
 
 const int BUFFER_SIZE = 256;
