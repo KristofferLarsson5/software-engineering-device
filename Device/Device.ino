@@ -33,7 +33,7 @@ Device devices[MAX_DEVICES] = {
   {"fan", FAN_INA_PIN, -1, false},
   {"screen", 0, -1, false},
   {"buzzer", 3, -1, false},
-  {"temperature_sensor", TEMP_SENSOR_PIN, -1, false},
+  {"steam_sensor", TEMP_SENSOR_PIN, -1, false},
   {"humidity_sensor", HUMIDITY_SENSOR_PIN, -1, false},
   {"light_sensor", LIGHT_SENSOR_PIN, -1, false}
 };
