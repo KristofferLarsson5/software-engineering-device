@@ -10,7 +10,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define FAN_INB_PIN 6
 
 // Sensor pins
-#define TEMP_SENSOR_PIN A0
+#define STEAM_SENSOR_PIN A0
 #define HUMIDITY_SENSOR_PIN A3
 #define LIGHT_SENSOR_PIN A1
 
@@ -33,7 +33,7 @@ Device devices[MAX_DEVICES] = {
   {"fan", FAN_INA_PIN, -1, false},
   {"screen", 0, -1, false},
   {"buzzer", 3, -1, false},
-  {"steam_sensor", TEMP_SENSOR_PIN, -1, false},
+  {"steam_sensor", STEAM_SENSOR_PIN, -1, false},
   {"humidity_sensor", HUMIDITY_SENSOR_PIN, -1, false},
   {"light_sensor", LIGHT_SENSOR_PIN, -1, false}
 };
@@ -155,7 +155,7 @@ void loop() {
     lastTempSend = currentMillis;
 
     float tempC = readTemperature();
-    sendSensorJson(1001, "temperature", round(tempC), "celsius", "temp1");
+    sendSensorJson(1001, "steam", round(tempC), "celsius", "temp1");
 
     float humidity = readHumidity();
     sendSensorJson(1002, "humidity", round(humidity), "%", "humid1");
