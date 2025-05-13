@@ -12,6 +12,8 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 // Sensor pins
 #define TEMP_SENSOR_PIN A0
 #define HUMIDITY_SENSOR_PIN A3
+#define LIGHT_SENSOR_PIN A2
+
 
 const int BUFFER_SIZE = 256;
 const unsigned long TEMP_SEND_INTERVAL = 10000;
@@ -28,6 +30,7 @@ struct Device {
 Device devices[MAX_DEVICES] = {
   {"light_1", 13, -1, false},
   {"light_2", 5, -1, false},
+  {"light_sensor", LIGHT_SENSOR_PIN, -1, false}
   {"fan", FAN_INA_PIN, -1, false},
   {"screen", 0, -1, false},
   {"buzzer", 3, -1, false}
@@ -154,6 +157,9 @@ void loop() {
 
     float humidity = readHumidity();
     sendSensorJson(1002, "humidity", round(humidity), "%", "humid1");
+
+      float lightLevel = readLightLevel();
+    sendSensorJson(1003, "light", round(lightLevel), "%", "light1");
   }
 
   // Register next device if ready
@@ -222,6 +228,16 @@ float readHumidity() {
   float humidityPercent = voltage * 100.0 / 5.0; // Scale 0–5V to 0–100%
   return humidityPercent;
 }
+// Läs ljusnivån från ljussensorn och omvandla till procent
+float readLightLevel() {
+  int analogValue = analogRead(LIGHT_SENSOR_PIN);
+  float voltage = analogValue * (5.0 / 1023.0);
+  
+  // Omvandla spänningen till procent (0–100%)
+  float lightPercent = (voltage / 5.0) * 100.0;
+  return lightPercent;
+}
+
 
 // Send sensor data
 void sendSensorJson(int id, const char* type, float value, const char* unit, const char* name) {
