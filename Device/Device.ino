@@ -14,39 +14,43 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define HUMIDITY_SENSOR_PIN A3
 #define LIGHT_SENSOR_PIN A1
 
-
 const int BUFFER_SIZE = 256;
 const unsigned long TEMP_SEND_INTERVAL = 10000;
+
+int sensorIdCounter = 1000;
 
 // Device struct and array
 struct Device {
   const char* type;
   int pin;
-  int id;
+  int id;          // for devices
+  int sensor_id;   // for sensors
   bool registered;
 };
 
 #define MAX_DEVICES 10
 Device devices[MAX_DEVICES] = {
-  {"light", 13, -1, false},
-  {"light", 5, -1, false},
-  {"fan", FAN_INA_PIN, -1, false},
-  {"screen", 0, -1, false},
-  {"buzzer", 3, -1, false},
-  {"steam_sensor", STEAM_SENSOR_PIN, -1, false},
-  {"humidity_sensor", HUMIDITY_SENSOR_PIN, -1, false},
-  {"light_sensor", LIGHT_SENSOR_PIN, -1, false}
+  {"light", 13, -1, -1, false},
+  {"light", 5, -1, -1, false},
+  {"fan", FAN_INA_PIN, -1, -1, false},
+  {"screen", 0, -1, -1, false},
+  {"buzzer", 3, -1, -1, false},
+  {"steam_sensor", STEAM_SENSOR_PIN, -1, -1, false},
+  {"humidity_sensor", HUMIDITY_SENSOR_PIN, -1, -1, false},
+  {"light_sensor", LIGHT_SENSOR_PIN, -1, -1, false}
 };
+
 int deviceCount = 8;
 int currentDeviceIndex = 0;
 bool registrationInProgress = false;
 
 unsigned long lastTempSend = 0;
 
-// Setup
 void setup() {
   Serial.begin(9600);
   delay(1000);
+
+  assignSensorIds();
 
   for (int i = 0; i < deviceCount; i++) {
     if (strcmp(devices[i].type, "fan") == 0) {
@@ -66,7 +70,15 @@ void setup() {
   registerNextDevice();
 }
 
-// Main loop
+// Assign dynamic sensor IDs
+void assignSensorIds() {
+  for (int i = 0; i < deviceCount; i++) {
+    if (strstr(devices[i].type, "sensor") != nullptr) {
+      devices[i].sensor_id = ++sensorIdCounter;
+    }
+  }
+}
+
 void loop() {
   static char jsonBuffer[BUFFER_SIZE];
   static int index = 0;
@@ -88,16 +100,21 @@ void loop() {
       if (!error) {
         const char* messageType = doc["message_type"];
 
-        // Registration response
-        if (strcmp(messageType, "registered") == 0 && doc.containsKey("device_id")) {
-          int id = doc["device_id"];
-          devices[currentDeviceIndex].id = id;
-          devices[currentDeviceIndex].registered = true;
+        // Handle both device_id and sensor_id
+        if (strcmp(messageType, "registered") == 0) {
+          if (doc.containsKey("device_id")) {
+            int id = doc["device_id"];
+            devices[currentDeviceIndex].id = id;
+            devices[currentDeviceIndex].registered = true;
+            sendAck(id, "registered");
+          } else if (doc.containsKey("sensor_id")) {
+            int id = doc["sensor_id"];
+            devices[currentDeviceIndex].sensor_id = id;
+            devices[currentDeviceIndex].registered = true;
+            sendAck(id, "registered");
+          }
 
           delay(100);
-          sendAck(id, "registered");
-          delay(100);
-
           currentDeviceIndex++;
           registrationInProgress = false;
         }
@@ -113,25 +130,17 @@ void loop() {
 
               if (strncmp(type, "light", 5) == 0) {
                 digitalWrite(devices[i].pin, strcmp(status, "on") == 0 ? HIGH : LOW);
-              }
-              else if (strcmp(type, "buzzer") == 0) {
-                if (strcmp(status, "on") == 0) {
-                  tone(devices[i].pin, 1000); // 1kHz tone
-                } else {
-                  noTone(devices[i].pin);
-                }
-              }
-              else if (strcmp(type, "fan") == 0) {
+              } else if (strcmp(type, "buzzer") == 0) {
+                if (strcmp(status, "on") == 0) tone(devices[i].pin, 1000);
+                else noTone(devices[i].pin);
+              } else if (strcmp(type, "fan") == 0) {
                 if (strcmp(status, "on") == 0) startFan();
                 else stopFan();
-              }
-              else if (strcmp(type, "screen") == 0) {
+              } else if (strcmp(type, "screen") == 0) {
+                lcd.clear();
                 if (strcmp(status, "on") == 0) {
-                  lcd.clear();
                   lcd.setCursor(0, 0);
                   lcd.print("Welcome Home");
-                } else {
-                  lcd.clear();
                 }
               }
 
@@ -149,29 +158,34 @@ void loop() {
     }
   }
 
-  // Sensor updates every 10 seconds
+  // Sensor updates
   unsigned long currentMillis = millis();
   if (currentMillis - lastTempSend >= TEMP_SEND_INTERVAL) {
     lastTempSend = currentMillis;
 
-    float tempC = readTemperature();
-    sendSensorJson(1001, "steam", round(tempC), "%", "steam1");
+    for (int i = 0; i < deviceCount; i++) {
+      if (!devices[i].registered) continue;
 
-    float humidity = readHumidity();
-    sendSensorJson(1002, "humidity", round(humidity), "%", "humid1");
-
-      float lightLevel = readLightLevel();
-    sendSensorJson(1003, "light", round(lightLevel), "%", "light1");
+      if (strcmp(devices[i].type, "steam_sensor") == 0) {
+        float tempC = readTemperature();
+        sendSensorJson(devices[i].sensor_id, "steam", round(tempC), "%", "steam1");
+      } else if (strcmp(devices[i].type, "humidity_sensor") == 0) {
+        float humidity = readHumidity();
+        sendSensorJson(devices[i].sensor_id, "humidity", round(humidity), "%", "humid1");
+      } else if (strcmp(devices[i].type, "light_sensor") == 0) {
+        float light = readLightLevel();
+        sendSensorJson(devices[i].sensor_id, "light", round(light), "%", "light1");
+      }
+    }
   }
 
-  // Register next device if ready
   if (!registrationInProgress && currentDeviceIndex < deviceCount) {
     delay(100);
     registerNextDevice();
   }
 }
 
-// Register device
+// Register device or sensor
 void registerNextDevice() {
   if (currentDeviceIndex >= deviceCount) return;
 
@@ -181,9 +195,16 @@ void registerNextDevice() {
 
 void registerDevice(const char* type, int pin) {
   StaticJsonDocument<BUFFER_SIZE> doc;
-  doc["message_type"] = "register";
-  doc["device_type"] = type;
-  doc["pin"] = pin;
+
+  if (strstr(type, "sensor") != nullptr) {
+    doc["message_type"] = "register";
+    doc["sensor_type"] = type;
+    doc["pin"] = pin;
+  } else {
+    doc["message_type"] = "register";
+    doc["device_type"] = type;
+    doc["pin"] = pin;
+  }
 
   char buffer[BUFFER_SIZE];
   if (serializeJson(doc, buffer) > 0) {
@@ -215,7 +236,7 @@ void stopFan() {
   digitalWrite(FAN_INB_PIN, LOW);
 }
 
-// Read temperature sensor
+// Sensor reads
 float readTemperature() {
   int analogValue = analogRead(STEAM_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
@@ -223,38 +244,34 @@ float readTemperature() {
   return temperatureC;
 }
 
-// Read humidity sensor
 float readHumidity() {
   int analogValue = analogRead(HUMIDITY_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
-  float humidityPercent = voltage * 100.0 / 5.0; // Scale 0–5V to 0–100%
+  float humidityPercent = voltage * 100.0 / 5.0;
   return humidityPercent;
 }
-// Läs ljusnivån från ljussensorn och omvandla till procent
+
 float readLightLevel() {
   int analogValue = analogRead(LIGHT_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
-  
-  // Omvandla spänningen till procent (0–100%)
   float lightPercent = (voltage / 5.0) * 100.0;
   return lightPercent;
 }
 
-
 // Send sensor data
 void sendSensorJson(int id, const char* type, float value, const char* unit, const char* name) {
   StaticJsonDocument<BUFFER_SIZE> doc;
+  doc["message_type"] = "sensor_data";
   doc["sensor_id"] = id;
   doc["sensor_type"] = type;
   doc["value"] = value;
   doc["unit"] = unit;
   doc["sensor_name"] = name;
   doc["location"] = "loc";
-  doc["registered"] = false;
+  doc["registered"] = true;
 
   char buffer[BUFFER_SIZE];
   if (serializeJson(doc, buffer) > 0) {
     Serial.println(buffer);
   }
 }
-
