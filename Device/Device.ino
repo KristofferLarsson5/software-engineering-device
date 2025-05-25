@@ -276,8 +276,15 @@ void stopFan() {
 float readTemperature() {
   int analogValue = analogRead(STEAM_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
-  float temperatureC = (voltage - 0.5) * 100.0;
-  return temperatureC;
+
+  // 🔍 Print like the debug block
+  Serial.print("[Steam Sensor] Raw: ");
+  Serial.print(analogValue);
+  Serial.print(" | Voltage: ");
+  Serial.print(voltage, 2);
+  Serial.println(" V");
+
+  return voltage;  // Return voltage directly for now
 }
 
 float readHumidity() {
