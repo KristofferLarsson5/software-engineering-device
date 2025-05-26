@@ -13,11 +13,6 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define STEAM_SENSOR_PIN A2
 #define HUMIDITY_SENSOR_PIN A3
 #define LIGHT_SENSOR_PIN A1
-#define MOTION_SENSOR_PIN 12
-#define GAS_SENSOR_PIN A0
-#define BUTTON_SENSOR_PIN1 4
-#define BUTTON_SENSOR_PIN2 8
-
 
 const int BUFFER_SIZE = 256;
 const unsigned long TEMP_SEND_INTERVAL = 10000;
@@ -33,7 +28,7 @@ struct Device {
   bool registered;
 };
 
-#define MAX_DEVICES 12
+#define MAX_DEVICES 10
 Device devices[MAX_DEVICES] = {
   {"light", 13, -1, -1, false},
   {"light", 5, -1, -1, false},
@@ -42,14 +37,10 @@ Device devices[MAX_DEVICES] = {
   {"buzzer", 3, -1, -1, false},
   {"steam_sensor", STEAM_SENSOR_PIN, -1, -1, false},
   {"humidity_sensor", HUMIDITY_SENSOR_PIN, -1, -1, false},
-  {"light_sensor", LIGHT_SENSOR_PIN, -1, -1, false},
-  {"motion_sensor", MOTION_SENSOR_PIN, -1, -1, false},
-  {"gas_sensor", GAS_SENSOR_PIN, -1, -1, false},
-  {"button_sensor1", BUTTON_SENSOR_PIN1, -1, -1, false},
-  {"button_sensor2", BUTTON_SENSOR_PIN2, -1, -1, false},
+  {"light_sensor", LIGHT_SENSOR_PIN, -1, -1, false}
 };
 
-int deviceCount = 12;
+int deviceCount = 8;
 int currentDeviceIndex = 0;
 bool registrationInProgress = false;
 
@@ -62,22 +53,31 @@ void setup() {
   assignSensorIds();
 
   for (int i = 0; i < deviceCount; i++) {
-    if (strcmp(devices[i].type, "fan") == 0) {
+    const char* type = devices[i].type;
+
+    if (strcmp(type, "fan") == 0) {
       pinMode(FAN_INA_PIN, OUTPUT);
       pinMode(FAN_INB_PIN, OUTPUT);
       stopFan();
-    } else if (strcmp(devices[i].type, "screen") != 0) {
+    }
+    // Only set OUTPUT for non-sensor, non-screen devices
+    else if (
+      strcmp(type, "screen") != 0 &&
+      strstr(type, "sensor") == nullptr
+    ) {
       pinMode(devices[i].pin, OUTPUT);
       digitalWrite(devices[i].pin, LOW);
     }
   }
 
-  lcd.init();
-  lcd.backlight();
-  lcd.clear();
+  // Optional: enable these once LCD is verified working
+  // lcd.init();
+  // lcd.backlight();
+  // lcd.clear();
 
   registerNextDevice();
 }
+
 
 // Assign dynamic sensor IDs
 void assignSensorIds() {
@@ -168,52 +168,30 @@ void loop() {
   }
 
 
+
 // Track previous button states for future implementation ex toggle fan on/off
 static int lastButton1State = 0;
 static int lastButton2State = 0;
   // Sensor updates
-for (int i = 0; i < deviceCount; i++) {
-  if (!devices[i].registered) continue;
+  unsigned long currentMillis = millis();
+  if (currentMillis - lastTempSend >= TEMP_SEND_INTERVAL) {
+    lastTempSend = currentMillis;
 
-  if (strcmp(devices[i].type, "steam_sensor") == 0) {
-    float tempC = readTemperature();
-    sendSensorJson(devices[i].sensor_id, "steam", round(tempC), "celsius", "steam1");
+    for (int i = 0; i < deviceCount; i++) {
+      if (!devices[i].registered) continue;
 
-  } else if (strcmp(devices[i].type, "humidity_sensor") == 0) {
-    float humidity = readHumidity();
-    sendSensorJson(devices[i].sensor_id, "humidity", round(humidity), "%", "humid1");
-
-  } else if (strcmp(devices[i].type, "light_sensor") == 0) {
-    float light = readLightLevel();
-    sendSensorJson(devices[i].sensor_id, "light", round(light), "bool", "light1");
-
-  } else if (strcmp(devices[i].type, "motion_sensor") == 0) {
-    float motion = readMotion();
-    sendSensorJson(devices[i].sensor_id, "motion", round(motion), "boolean", "motion1");
-
-  } else if (strcmp(devices[i].type, "gas_sensor") == 0) {
-    float gas = readGas();
-    sendSensorJson(devices[i].sensor_id, "gas", round(gas), "ppm", "gas1");
-
-  } else if (strcmp(devices[i].type, "button_sensor1") == 0) {
-    int button1State = digitalRead(devices[i].pin);
-    sendSensorJson(devices[i].sensor_id, "button", button1State, "boolean", "button_sensor1");
-
-    if (button1State == HIGH && lastButton1State == LOW) {
-      startFan();
+      if (strcmp(devices[i].type, "steam_sensor") == 0) {
+        float tempC = readTemperature();
+        sendSensorJson(devices[i].sensor_id, "steam", round(tempC), "%", "steam1");
+      } else if (strcmp(devices[i].type, "humidity_sensor") == 0) {
+        float humidity = readHumidity();
+        sendSensorJson(devices[i].sensor_id, "humidity", round(humidity), "%", "humid1");
+      } else if (strcmp(devices[i].type, "light_sensor") == 0) {
+        float light = readLightLevel();
+        sendSensorJson(devices[i].sensor_id, "light", round(light), "%", "light1");
+      }
     }
-    lastButton1State = button1State;
-
-  } else if (strcmp(devices[i].type, "button_sensor2") == 0) {
-    int button2State = digitalRead(devices[i].pin);
-    sendSensorJson(devices[i].sensor_id, "button", button2State, "boolean", "button_sensor2");
-
-    if (button2State == HIGH && lastButton2State == LOW) {
-      stopFan();
-    }
-    lastButton2State = button2State;
   }
-}
 
   if (!registrationInProgress && currentDeviceIndex < deviceCount) {
     delay(100);
@@ -294,6 +272,7 @@ float readLightLevel() {
   return lightPercent;
 }
 
+
 // Read motion sensor
 float readMotion() {
   return digitalRead(MOTION_SENSOR_PIN);
@@ -306,8 +285,6 @@ float readGas() {
   float gasPercent = (voltage / 5.0) * 100.0;
   return gasPercent;
 }
-
-
 // Send sensor data
 void sendSensorJson(int id, const char* type, float value, const char* unit, const char* name) {
   StaticJsonDocument<BUFFER_SIZE> doc;
