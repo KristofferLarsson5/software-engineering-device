@@ -9,12 +9,11 @@ This repository contains the **device-side implementation** for the **Smart Home
 
 ## Features  
 - **Device Registration**: The device registers itself with the server and receives a unique `device_id`.  
-- **Remote Lamp Control**: The server can send `device_update` messages to turn the lamp ON/OFF.  
+- **Modules**: The server can send `device_update` messages to turn the devices ON/OFF.  
 - **Acknowledgment Messages**: The device sends `ack` responses back to the server for reliable communication.  
+- **Sensors**: Sensors can also be used, the Arduino periodically sends sensor_data messages to report live readings to the server.
 
 ## How to Use  
 1. **Upload the Arduino Code** to your microcontroller using **Arduino IDE**.  
 2. **Run the Server**.  
-3. **Send Commands** from the server to control the lamp.  
-4. **Monitor Serial Output** to see registration, updates, and acknowledgments.  
-
+3. **Send Commands** from the server to control the different modules and sensor.  

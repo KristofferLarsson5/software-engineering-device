@@ -167,6 +167,11 @@ void loop() {
     }
   }
 
+
+
+// Track previous button states for future implementation ex toggle fan on/off
+static int lastButton1State = 0;
+static int lastButton2State = 0;
   // Sensor updates
   unsigned long currentMillis = millis();
   if (currentMillis - lastTempSend >= TEMP_SEND_INTERVAL) {
@@ -267,6 +272,19 @@ float readLightLevel() {
   return lightPercent;
 }
 
+
+// Read motion sensor
+float readMotion() {
+  return digitalRead(MOTION_SENSOR_PIN);
+}
+
+// Read gas sensor
+float readGas() {
+  int analogValue = analogRead(GAS_SENSOR_PIN);
+  float voltage = analogValue * (5.0 / 1023.0);
+  float gasPercent = (voltage / 5.0) * 100.0;
+  return gasPercent;
+}
 // Send sensor data
 void sendSensorJson(int id, const char* type, float value, const char* unit, const char* name) {
   StaticJsonDocument<BUFFER_SIZE> doc;
