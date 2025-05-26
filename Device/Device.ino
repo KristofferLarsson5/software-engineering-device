@@ -168,7 +168,7 @@ void loop() {
   }
 
 
-// Track previous button states
+// Track previous button states for future implementation ex toggle fan on/off
 static int lastButton1State = 0;
 static int lastButton2State = 0;
   // Sensor updates
@@ -294,12 +294,12 @@ float readLightLevel() {
   return lightPercent;
 }
 
-// Read motion sensor (digital sensor like PIR)
+// Read motion sensor
 float readMotion() {
   return digitalRead(MOTION_SENSOR_PIN);
 }
 
-// Read gas sensor (analog sensor like MQ-x)
+// Read gas sensor
 float readGas() {
   int analogValue = analogRead(GAS_SENSOR_PIN);
   float voltage = analogValue * (5.0 / 1023.0);
