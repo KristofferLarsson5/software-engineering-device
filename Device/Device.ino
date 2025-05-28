@@ -179,23 +179,23 @@ for (int i = 0; i < deviceCount; i++) {
     float tempC = readTemperature();
     sendSensorJson(devices[i].sensor_id, "steam", round(tempC), "celsius", "steam1");
 
-  } else if (strcmp(devices[i].type, "humidity_sensor") == 0) {
+  } if (strcmp(devices[i].type, "humidity_sensor") == 0) {
     float humidity = readHumidity();
     sendSensorJson(devices[i].sensor_id, "humidity", round(humidity), "%", "humid1");
 
-  } else if (strcmp(devices[i].type, "light_sensor") == 0) {
+  } if (strcmp(devices[i].type, "light_sensor") == 0) {
     float light = readLightLevel();
     sendSensorJson(devices[i].sensor_id, "light", round(light), "bool", "light1");
 
-  } else if (strcmp(devices[i].type, "motion_sensor") == 0) {
+  } if (strcmp(devices[i].type, "motion_sensor") == 0) {
     float motion = readMotion();
     sendSensorJson(devices[i].sensor_id, "motion", round(motion), "boolean", "motion1");
 
-  } else if (strcmp(devices[i].type, "gas_sensor") == 0) {
+  } if (strcmp(devices[i].type, "gas_sensor") == 0) {
     float gas = readGas();
     sendSensorJson(devices[i].sensor_id, "gas", round(gas), "ppm", "gas1");
 
-  } else if (strcmp(devices[i].type, "button_sensor1") == 0) {
+  } if (strcmp(devices[i].type, "button_sensor1") == 0) {
     int button1State = digitalRead(devices[i].pin);
     sendSensorJson(devices[i].sensor_id, "button", button1State, "boolean", "button_sensor1");
 
